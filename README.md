@@ -24,6 +24,24 @@ python -m http.server 8091
 
 Then visit `http://localhost:8091/`.
 
+## Admin and client access
+
+The site has two modes (soft-gated — this is static hosting with no real login, so treat it as convenience, not security):
+
+- **Admin console** — the root URL (passcode-gated). Full access to all three models plus a **Share a client link** panel and code generation.
+- **Client view** — a `?view=client` link (no passcode, apply-only for the share panel). Clients configure pricing, apply a code, and export.
+
+## Sharing a configuration
+
+Configurations are shared as a copy-paste **configuration code** — `PPCC1-<COURT|SPOT|HYB>-…`. A code is **model-locked**: a Court+ code only loads into Court+, a Spot+ code only into Spot+, etc.
+
+From the admin console you can also copy **client links**:
+
+- `?view=client` — client can switch between all three models.
+- `?view=client&model=court-plus` (or `spot-plus` / `hybrid`) — client is locked to that one model.
+
+Work autosaves to the browser's `localStorage`, so it persists across refreshes and return visits on the same device. The **Save as PDF** button produces a printable summary — including the court group and the configuration code — for the client to send to their PodPlay contact.
+
 ## Files
 
 | File | Purpose |
