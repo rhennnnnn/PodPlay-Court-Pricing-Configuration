@@ -500,3 +500,74 @@ table.calc tbody tr:hover td { background: var(--muted); }
   .mem-item { flex-wrap: wrap; }
   .mem-item input.mem-name { flex: 1 1 100%; order: -1; }
 }
+
+/* ---------- Structure validation ---------- */
+/* A plain (non-.field) affix goes danger-bordered when the sizes conflict. */
+.input-affix.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+.struct-err {
+  margin: 10px 2px 0;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Table header help "?" tooltip ---------- */
+.th-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin-left: 4px;
+  border-radius: 50%; border: 1px solid currentColor;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  opacity: .65; cursor: help; position: relative; vertical-align: middle;
+}
+.th-tip:hover, .th-tip:focus-visible { opacity: 1; outline: none; }
+.th-tip:focus-visible { box-shadow: 0 0 0 3px var(--ring); }
+/* The bubble is appended to <body> and positioned by JS (bindTips) so it is
+   never clipped by the table's horizontal scroll container. */
+.tip-bubble {
+  position: fixed; z-index: 200;
+  max-width: 260px;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  background: var(--accent); color: var(--on-accent);
+  font-family: var(--sans);
+  font-size: 11.5px; font-weight: 500; line-height: 1.45; letter-spacing: 0;
+  text-transform: none; text-align: left; white-space: normal;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+
+/* ---------- Beautified scrollbars (scroll containers only) ---------- */
+.col-side, .col-cx, .calc-table-wrap, .modal-body, .code-input {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.col-side::-webkit-scrollbar,
+.col-cx::-webkit-scrollbar,
+.calc-table-wrap::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.code-input::-webkit-scrollbar { width: 10px; height: 10px; }
+.col-side::-webkit-scrollbar-track,
+.col-cx::-webkit-scrollbar-track,
+.calc-table-wrap::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.code-input::-webkit-scrollbar-track { background: transparent; }
+.col-side::-webkit-scrollbar-thumb,
+.col-cx::-webkit-scrollbar-thumb,
+.calc-table-wrap::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.code-input::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.col-side::-webkit-scrollbar-thumb:hover,
+.col-cx::-webkit-scrollbar-thumb:hover,
+.calc-table-wrap::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.code-input::-webkit-scrollbar-thumb:hover { background: var(--muted-fg); }
+.col-side::-webkit-scrollbar-corner,
+.col-cx::-webkit-scrollbar-corner { background: transparent; }
