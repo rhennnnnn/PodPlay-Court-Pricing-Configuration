@@ -1,0 +1,14 @@
+# Internal project notes — working docs, not needed to run the site
+project-notes/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Local tooling / dependencies
+.claude/
+.vscode/
+.idea/
+node_modules/
