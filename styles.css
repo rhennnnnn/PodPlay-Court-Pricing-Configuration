@@ -192,6 +192,11 @@ body {
   letter-spacing: .05em; color: var(--muted-fg); margin-bottom: 5px;
 }
 .cx-result-block p { margin: 0; font-size: 13px; line-height: 1.5; }
+.cx-note {
+  margin: 12px 0 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; font-style: italic;
+  color: var(--muted-fg); border-left: 2px solid var(--border-strong); background: var(--muted);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
 
 /* ---------- Card ---------- */
 .card {
