@@ -17,7 +17,14 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'courtPlusPricingConfig.v1';
+  // A restricted client link carries ?model=<court-plus|spot-plus|hybrid>, which
+  // locks the tool to that single pricing model (the model switch is hidden). Each
+  // locked model keeps its own saved config so the three links never collide.
+  const _urlParams = new URLSearchParams(location.search);
+  const _validModels = ['court-plus', 'spot-plus', 'hybrid'];
+  const LOCKED_MODEL = _validModels.includes(_urlParams.get('model')) ? _urlParams.get('model') : null;
+
+  const STORAGE_KEY = 'courtPlusPricingConfig.v1' + (LOCKED_MODEL ? '::' + LOCKED_MODEL : '');
   const THEME_KEY = 'courtPlusTheme';
   const USER_KEY = 'courtPlusUserId';
 
@@ -138,7 +145,7 @@
 
   function defaultState() {
     return {
-      model: 'court-plus',
+      model: LOCKED_MODEL || 'court-plus',
       court: { name: '' },
       structure: { baseGroup: 2, maxPlayers: 4, minGroup: 2 },
       memberships: [],
@@ -759,6 +766,7 @@
   }
 
   function setModel(model) {
+    if (LOCKED_MODEL) return;               // restricted client link — model is fixed
     if (state.model === model) return;
     state.model = model;
     applyModelCopy();
@@ -826,13 +834,19 @@
   function bindCodePanel() {
     const copyBtn = $('#copyCodeBtn');
     const applyBtn = $('#applyCodeBtn');
-    const clientLinkBtn = $('#copyClientLinkBtn');
     const input = $('#codeInput');
 
-    if (clientLinkBtn) clientLinkBtn.addEventListener('click', async () => {
-      const link = `${location.origin}${location.pathname}?view=client`;
-      const ok = await copyText(link);
-      toast(ok ? 'Client link copied.' : `Copy failed — the link is: ${link}`, ok);
+    // Admin-only: copy a client link. A single-model link locks the client to that
+    // pricing model; the all-models link lets the client switch between all three.
+    document.querySelectorAll('#codeExport [data-share]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const m = btn.getAttribute('data-share');
+        const q = m === 'all' ? '?view=client' : `?view=client&model=${m}`;
+        const link = `${location.origin}${location.pathname}${q}`;
+        const ok = await copyText(link);
+        const label = m === 'all' ? 'All-models' : MODEL_LABEL[m];
+        toast(ok ? `${label} client link copied.` : `Copy failed — link: ${link}`, ok);
+      });
     });
 
     if (copyBtn) copyBtn.addEventListener('click', async () => {
@@ -877,6 +891,12 @@
     return false;
   }
 
+  // Restricted client link: hide the model switch so the client stays on one model.
+  function applyLockChrome() {
+    const card = document.getElementById('modelSwitchCard');
+    if (card) card.hidden = !!LOCKED_MODEL;
+  }
+
   function applyAdminChrome() {
     document.body.classList.toggle('is-admin', isAdmin);
     const exportBox = document.getElementById('codeExport');
@@ -909,6 +929,7 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) hydrate(JSON.parse(raw));
     } catch (_) { /* ignore corrupt storage */ }
+    if (LOCKED_MODEL) state.model = LOCKED_MODEL;  // restricted link overrides saved model
 
     isAdmin = resolveAdmin();
 
@@ -920,6 +941,7 @@
     bindCodePanel();
     bootRender();
     applyAdminChrome();
+    applyLockChrome();
   }
 
   // Rebuild internal state from an exported config shape.

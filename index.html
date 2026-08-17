@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <!-- ============ HEADER ============ -->
@@ -69,7 +69,7 @@
       </section>
 
       <!-- Pricing model switch -->
-      <section class="card">
+      <section class="card" id="modelSwitchCard">
         <div class="card-body model-switch-body">
           <div class="model-switch-info">
             <span class="model-switch-label">Pricing model</span>
@@ -99,25 +99,30 @@
           <p class="desc">Share a whole configuration as a copy-paste code. A code only applies to the model it was made in: a Court+ code will not load into Spot+ or Hybrid.</p>
         </div>
         <div class="card-body">
-          <div class="code-export" id="codeExport" hidden>
-            <button class="btn btn-primary" id="copyCodeBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copy configuration code
-            </button>
-            <p class="section-note">Generates a code for the current model and settings, then copies it to your clipboard to send to a client.</p>
-            <button class="btn btn-sm" id="copyClientLinkBtn" style="margin-top:10px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              Copy client link
-            </button>
-            <p class="section-note">The client link (<code>?view=client</code>) opens this tool in client mode — no passcode, apply-only. Send it alongside a configuration code.</p>
-          </div>
-          <label class="code-label" for="codeInput">Apply a configuration code</label>
+          <button class="btn btn-primary" id="copyCodeBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy configuration code
+          </button>
+          <p class="section-note">Generates a code for the current model and settings that you can copy and share.</p>
+
+          <label class="code-label" for="codeInput" style="margin-top:16px">Apply a configuration code</label>
           <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code here…" aria-label="Configuration code"></textarea>
           <button class="btn" id="applyCodeBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Apply code
           </button>
           <p class="section-note">Applying a code replaces the current settings for this model. Your work is saved automatically on this device and stays after a refresh.</p>
+
+          <div class="code-export" id="codeExport" hidden>
+            <span class="band-sub code-share-title">Share a client link</span>
+            <div class="share-grid">
+              <button class="btn btn-sm" data-share="court-plus">Copy Court+ link</button>
+              <button class="btn btn-sm" data-share="spot-plus">Copy Spot+ link</button>
+              <button class="btn btn-sm" data-share="hybrid">Copy Hybrid link</button>
+              <button class="btn btn-sm" data-share="all">Copy all-models link</button>
+            </div>
+            <p class="section-note">Each single-model link opens the tool locked to that one pricing model (the client can't switch). The all-models link lets the client choose between all three. All client links skip the passcode and are apply-only.</p>
+          </div>
         </div>
       </section>
 
@@ -237,6 +242,6 @@
   </div>
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
