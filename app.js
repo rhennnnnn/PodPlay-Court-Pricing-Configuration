@@ -542,6 +542,7 @@
     const esc = escapeHtml;
     const now = new Date().toLocaleString();
     const courtName = state.court.name.trim();
+    const configCode = encodeConfigCode();
     const cfg = MODELS[state.model];
     const modelBadge = state.model === 'hybrid' ? 'Hybrid · Mixed'
       : state.model === 'spot-plus' ? 'Spot+ · Per Spot' : 'Court+ · Per Court';
@@ -627,6 +628,7 @@
       .p-muted { color: #828282; }
       .p-band { margin-bottom: 18px; page-break-inside: avoid; }
       .p-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .code-box { font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.5; word-break: break-all; background: #f8f8f1; border: 1px solid #c4c4b0; border-radius: 6px; padding: 10px 12px; margin: 4px 0 6px; page-break-inside: avoid; }
       footer { margin-top: 24px; color: #9a9a90; font-size: 10px; border-top: 1px solid #d6d6c4; padding-top: 8px; }
       @media print { body { margin: 14mm; } }
     </style></head><body>
@@ -638,6 +640,9 @@
       <h2>Pricing structure</h2>${structTable}
       <h2>Memberships</h2>${memList}
       <h2>Time bands</h2>${bandBlocks}
+      <h2>Configuration code</h2>
+      <p class="sub">PodPlay staff: paste this code into the ${esc(modelBadge)} model of the Court Pricing Configuration tool to load these exact settings. The code only applies to the same model it was made in.</p>
+      <div class="code-box">${esc(configCode)}</div>
       <footer>Share this PDF with your PodPlay Customer Success contact to have this pricing applied to your courts. This document is a configuration summary, not a system export.<br>Config ID: ${esc(getUserId())}</footer>
     </body></html>`;
   }
