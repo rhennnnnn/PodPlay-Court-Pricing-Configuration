@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=11" />
 </head>
 <body>
   <!-- ============ HEADER ============ -->
@@ -162,23 +162,24 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
             Pricing structure
           </h2>
-          <p class="desc">Set a base court price (up to the base group size) and an extra-player surcharge for larger groups, per time band.</p>
+          <p class="desc">Set a base court price (up to the base group size) and an extra-player surcharge for larger groups, per time schedule.</p>
         </div>
         <div class="card-body">
           <div class="field-row" style="margin-bottom:14px">
             <div class="field">
               <label>Base group size <span class="sub">players</span></label>
-              <div class="input-affix narrow"><input type="number" id="baseGroup" min="1" step="1" value="2" aria-label="Base group size" /></div>
+              <div class="input-affix narrow"><input type="number" id="baseGroup" min="1" step="1" value="2" aria-label="Base group size" aria-describedby="structError" /></div>
             </div>
             <div class="field">
               <label>Maximum players</label>
-              <div class="input-affix narrow"><input type="number" id="maxPlayers" min="1" step="1" value="4" aria-label="Maximum players" /></div>
+              <div class="input-affix narrow"><input type="number" id="maxPlayers" min="1" step="1" value="4" aria-label="Maximum players" aria-describedby="structError" /></div>
             </div>
             <div class="field">
               <label>Minimum group size</label>
-              <div class="input-affix narrow"><input type="number" id="minGroup" min="1" step="1" value="2" aria-label="Minimum group size" /></div>
+              <div class="input-affix narrow"><input type="number" id="minGroup" min="1" step="1" value="2" aria-label="Minimum group size" aria-describedby="structError" /></div>
             </div>
           </div>
+          <p class="struct-err" id="structError" role="alert" hidden></p>
           <p class="hint" id="structureHint">Your pricing model is <strong>court pricing</strong>, meaning customers pay the full court price regardless of group size. The final court price is divided among the participants invited to pay; any free invites' portion is covered by the reservation holder.</p>
           <div class="fixed-price-note" id="fixedPriceNote" hidden>
             <div class="fixed-price-head">
@@ -236,10 +237,10 @@
         </div>
       </section>
 
-      <!-- Time bands (rendered by app.js) -->
+      <!-- Time schedules (rendered by app.js) -->
       <div id="bands"></div>
 
-      <!-- Add band -->
+      <!-- Add schedule -->
       <div class="add-band-row" id="addBandRow"></div>
 
     </main>
@@ -290,13 +291,13 @@
         </button>
         <p class="section-note">Generates a code for the current model and settings that you can copy and share.</p>
 
-        <label class="code-label" for="codeInput" style="margin-top:16px">Apply a configuration code</label>
-        <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code here…" aria-label="Configuration code"></textarea>
+        <label class="code-label" for="codeInput" style="margin-top:16px">Apply a configuration code or PodPlay JSON</label>
+        <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code, or a PodPlay court pricing JSON, here…" aria-label="Configuration code or PodPlay JSON"></textarea>
         <button class="btn" id="applyCodeBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Apply code
+          Apply code / import JSON
         </button>
-        <p class="section-note">Applying a code replaces the current settings for this model. Your work is saved automatically on this device and stays after a refresh.</p>
+        <p class="section-note">Applying a code or importing a PodPlay court JSON replaces the current settings for this model. A JSON with no per-spot pricing is Court+ only and will be refused in Spot+ or Hybrid. Your work is saved automatically on this device and stays after a refresh.</p>
       </div>
     </div>
   </div>
@@ -327,6 +328,6 @@
   </div>
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

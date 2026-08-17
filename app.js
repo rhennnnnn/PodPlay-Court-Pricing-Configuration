@@ -82,6 +82,93 @@
     return { ok: true, model, cfg };
   }
 
+  // ---- Import a raw PodPlay pod-pricing JSON ----
+  // The admin can paste a real court's pricing JSON (as read from a PodPlay
+  // environment) straight into the configuration window. We translate PodPlay's
+  // shape into this tool's config, deriving each per-band member discount as a
+  // percentage of that band's base price (PodPlay stores absolute member rates).
+  //
+  // Per-spot pricing (spotRatePerGuest) marks a JSON as spot-capable. A JSON with
+  // no spotRatePerGuest is Court+ only — importing it into Spot+/Hybrid is refused.
+  const toNum = (v, d = 0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : d; };
+  const ratesById = (list) => {
+    const map = {};
+    (list || []).filter(Boolean).forEach((r) => { if (r && r.id) map[r.id] = r; });
+    return map;
+  };
+  // Member discount as % of the band base: base 0 → 0%; result clamped 0–100.
+  function derivedDiscPct(base, memRate) {
+    if (memRate === null || memRate === undefined) return 0;
+    const b = toNum(base, 0);
+    if (b === 0) return 0;
+    const d = (1 - toNum(memRate, 0) / b) * 100;
+    return Math.min(100, Math.max(0, Math.round(d * 100) / 100));
+  }
+  function podplayJsonToConfig(json, model) {
+    if (!json || typeof json !== 'object' || !json.defaultRate) {
+      return { ok: false, error: 'That JSON is not a PodPlay court pricing configuration.' };
+    }
+    const dr = json.defaultRate;
+    const hasSpot = dr.spotRatePerGuest && Object.keys(dr.spotRatePerGuest).length > 0;
+    if (!hasSpot && model !== 'court-plus') {
+      return { ok: false, error: 'This configuration has no per-spot pricing, so it is only compatible with Court+. Switch to Court+ to import it.' };
+    }
+    const eg = (json.extraGuests && json.extraGuests.private) || {};
+    const included = Math.round(toNum(eg.includedGuests, 2));
+    const maxG = Math.round(toNum(eg.maxGuests, 4));
+    const minG = Math.round(toNum(eg.minGuests, included));
+    const surRate = (eg.rate && (eg.rate.NON_MEMBER || eg.rate.MEMBER)) || {};
+
+    const baseRates = [dr, ...(json.specialRates || [])].filter(Boolean);
+    const order = ['OFF_PEAK', 'PEAK', 'REDUCED'];
+    baseRates.sort((a, b) => {
+      const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+
+    const overrides = json.membershipOverrides || {};
+    const memDefaultById = ratesById([(overrides.default || {}).defaultRate, ...((overrides.default || {}).specialRates || [])]);
+    const overrideKeys = Object.keys(overrides).filter((k) => k !== 'default');
+    const overrideById = overrideKeys.map((k) => ratesById([overrides[k].defaultRate, ...(overrides[k].specialRates || [])]));
+    const memberships = overrideKeys.map((_, i) => ({ name: `Membership ${i + 1}` }));
+
+    const bands = baseRates.map((br) => {
+      const id = br.id;
+      const base = toNum(br.rate, 0);
+      const memBase = memDefaultById[id];
+      return {
+        name: br.displayName || id || 'BAND',
+        baseCourtPrice: base,
+        extraPlayerSurcharge: toNum(surRate[id], 0),
+        memberDefaultDiscountPercent: derivedDiscPct(base, memBase ? memBase.rate : null),
+        membershipDiscounts: overrideKeys.map((_, i) => {
+          const ob = overrideById[i][id];
+          return { name: `Membership ${i + 1}`, discountPercent: derivedDiscPct(base, ob ? ob.rate : null) };
+        }),
+        courtLockFee: {
+          nonMembers: toNum(br.lockingFee, 0),
+          members: (memBase && memBase.lockingFee !== undefined && memBase.lockingFee !== null) ? toNum(memBase.lockingFee, 0) : toNum(br.lockingFee, 0),
+        },
+        lessonCourtDiscountPercent: {
+          nonMembers: Math.min(100, Math.max(0, toNum(br.coaching && br.coaching.courtDiscountPercentage, 0))),
+          members: Math.min(100, Math.max(0, toNum(memBase && memBase.coaching && memBase.coaching.courtDiscountPercentage, 0))),
+        },
+      };
+    });
+    if (!bands.length) return { ok: false, error: 'That JSON has no rate bands to import.' };
+
+    return {
+      ok: true,
+      cfg: {
+        model, court: '',
+        structure: { baseGroupSize: included, maximumPlayers: maxG, minimumGroupSize: minG },
+        memberships,
+        dayPass: { enabled: false, fee: 0 },
+        bands,
+      },
+    };
+  }
+
   // Copy helper with a manual-selection fallback for locked-down clipboards.
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -138,7 +225,7 @@
     'hybrid': {
       badge: 'Hybrid &middot; Mixed',
       desc: 'Hybrid — non-members pay the full court price; members pay per person.',
-      baseCol: false, nonPerPerson: false, memPerPerson: true,
+      baseCol: false, nonPerPerson: false, memPerPerson: true, nonBreakdown: true,
       hint: 'Your pricing model is <strong>hybrid pricing</strong>, meaning members pay per person while non-members pay the full court price. The member price applies the discount to the full court price, then divides it by the group size. Free-invited players do not pay — the booker can choose to cover their spot.',
     },
   };
@@ -199,6 +286,14 @@
     return rows;
   }
 
+  // A small "?" help affordance for a table header. Focusable (not hover-only)
+  // and screen-reader labelled; the visual bubble is drawn from data-tip in CSS.
+  const NB_TIP = "Charged when a non-member joins a member's reservation — the full court price divided by the group size.";
+  function thTip(text) {
+    const t = escapeHtml(text);
+    return `<span class="th-tip" tabindex="0" role="note" aria-label="${t}" data-tip="${t}">?</span>`;
+  }
+
   // Icons (inline SVG)
   const ICON = {
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
@@ -248,7 +343,7 @@
       const empty = document.createElement('p');
       empty.className = 'section-note';
       empty.style.margin = '0 0 4px';
-      empty.textContent = 'No custom memberships yet. Each band already includes the default member discount. Add a membership to give it its own discount in each band.';
+      empty.textContent = 'No custom memberships yet. Each schedule already includes the default member discount. Add a membership to give it its own discount in each schedule.';
       list.appendChild(empty);
     }
     state.memberships.forEach((mem, i) => {
@@ -258,7 +353,7 @@
       row.innerHTML =
         `<span class="swatch" style="background:${color}"></span>` +
         `<input class="mem-name" type="text" placeholder="Membership name" />` +
-        `<span class="mem-default-tag" style="margin-left:auto">discount set per band below</span>` +
+        `<span class="mem-default-tag" style="margin-left:auto">discount set per schedule below</span>` +
         `<button class="mem-remove" title="Remove membership" aria-label="Remove membership">${ICON.trash}</button>`;
       const nameEl = $('.mem-name', row);
       nameEl.value = mem.name;
@@ -294,7 +389,7 @@
       const head = document.createElement('div');
       head.className = 'band-head';
       head.innerHTML =
-        `<span class="band-title"><span class="band-swatch" style="background:${preset.swatch}"></span>${escapeHtml(band.name)}</span>`;
+        `<span class="band-title"><span class="band-swatch" style="background:${preset.swatch}"></span>${escapeHtml(band.name)} Schedule</span>`;
       // A band is removable only while more than one band exists; the last
       // remaining band cannot be deleted.
       if (state.bands.length > 1) {
@@ -383,7 +478,7 @@
       if (present.has(name)) return;
       const btn = document.createElement('button');
       btn.className = 'btn btn-sm';
-      btn.innerHTML = `${ICON.plus} Add ${name} band`;
+      btn.innerHTML = `${ICON.plus} Add ${name} schedule`;
       btn.addEventListener('click', () => {
         state.bands.push(newBand(name));
         const order = Object.keys(BAND_PRESETS);
@@ -410,7 +505,11 @@
       if (!wrap) return;
       let head = '<tr><th>Quantity</th>';
       if (cfg.baseCol) head += '<th>Base price</th>';
-      head += `<th>Non-member${nonQual}</th><th>Members (default)${memQual}</th>`;
+      head += `<th>Non-member${nonQual}</th>`;
+      // Hybrid: an extra "per person" non-member column, since a non-member who
+      // joins a member's reservation is charged per person (full price ÷ group).
+      if (cfg.nonBreakdown) head += `<th>Non-member (per person) ${thTip(NB_TIP)}</th>`;
+      head += `<th>Members (default)${memQual}</th>`;
       mems.forEach((m) => { head += `<th>${escapeHtml(m.name || 'Membership')}</th>`; });
       head += '</tr>';
       let body = '';
@@ -419,6 +518,7 @@
         body += `<tr><td class="qty">${r.label}</td>`;
         if (cfg.baseCol) { const cf = courtPriceFull(band, n); body += `<td class="${cf < 0 ? 'val-neg' : ''}">${money(cf)}</td>`; }
         body += cell(priceFor(band, n, 0, cfg.nonPerPerson), cfg.nonPerPerson);
+        if (cfg.nonBreakdown) body += cell(priceFor(band, n, 0, true), true);
         body += cell(priceFor(band, n, band.memberDiscount, cfg.memPerPerson), cfg.memPerPerson);
         mems.forEach((m) => { body += cell(priceFor(band, n, memPct(band, m), cfg.memPerPerson), cfg.memPerPerson); });
         body += '</tr>';
@@ -426,6 +526,7 @@
       wrap.innerHTML = `<table class="calc"><thead>${head}</thead><tbody>${body}</tbody></table>`;
     });
 
+    renderStructureValidation();
     renderSummary();
     renderPreview();
     autosave();
@@ -462,7 +563,7 @@
       ['Pricing model', state.model === 'hybrid' ? 'Hybrid (Mixed)' : state.model === 'spot-plus' ? 'Spot+ (Per Spot)' : 'Court+ (Per Court)'],
       ['Base group size', `${s.baseGroup} players`],
       ['Max players', `${s.maxPlayers}`],
-      ['Time bands', String(state.bands.length)],
+      ['Time schedules', String(state.bands.length)],
       ['Custom memberships', String(state.memberships.length)],
       ['Day pass', state.dayPass.enabled ? money(num(state.dayPass.fee)) : 'Disabled'],
     ];
@@ -503,6 +604,7 @@
           if (cfg.baseCol) row.basePrice = +courtPriceFull(b, n).toFixed(2);
           row.nonMember = +priceFor(b, n, 0, cfg.nonPerPerson).toFixed(2);
           row.nonMemberBasis = cfg.nonPerPerson ? 'per-person' : 'per-court';
+          if (cfg.nonBreakdown) row.nonMemberPerPerson = +priceFor(b, n, 0, true).toFixed(2);
           row.member = +priceFor(b, n, b.memberDiscount, cfg.memPerPerson).toFixed(2);
           row.memberBasis = cfg.memPerPerson ? 'per-person' : 'per-court';
           row.memberships = state.memberships.map((m) => ({
@@ -536,7 +638,7 @@
     parts.push(`<p class="section-note" style="margin:0 0 10px">Generated live from your inputs. Values shown here are exactly what appears in the printable PDF.</p>`);
     state.bands.forEach((b) => {
       const preset = BAND_PRESETS[b.name] || { swatch: '#64748B' };
-      parts.push(`<div class="preview-band"><div class="preview-band-title"><span class="band-swatch" style="background:${preset.swatch}"></span>${escapeHtml(b.name)}</div>`);
+      parts.push(`<div class="preview-band"><div class="preview-band-title"><span class="band-swatch" style="background:${preset.swatch}"></span>${escapeHtml(b.name)} Schedule</div>`);
       bandParamRows(b).forEach(([k, v]) => {
         parts.push(`<div class="summary-metric"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
       });
@@ -557,7 +659,7 @@
     const modelBadge = state.model === 'hybrid' ? 'Hybrid · Mixed'
       : state.model === 'spot-plus' ? 'Spot+ · Per Spot' : 'Court+ · Per Court';
     const modelBlurb = state.model === 'hybrid'
-      ? 'Hybrid pricing model: non-members pay the full court price (per court); members pay per person, with the discount applied to the full court price then divided by the group size. Free-invited players do not pay — the booker can choose to cover their spot.'
+      ? 'Hybrid pricing model: non-members pay the full court price (per court); members pay per person, with the discount applied to the full court price then divided by the group size. A non-member who joins a member\'s reservation is charged per person instead — the full court price divided by the group size (shown in the "Non-member (per person)" column). Free-invited players do not pay — the booker can choose to cover their spot.'
       : state.model === 'spot-plus'
       ? 'Spot pricing model: each calculated court price is divided by the group size and charged per person. Non-members pay per person; members pay per person with their membership discount applied to the full court price before dividing. Free-invited players do not pay — the reservation holder covers their spot.'
       : 'Court pricing model: customers pay the full court price regardless of group size. The final court price is divided among the participants invited to pay; any free invites\' portion is covered by the reservation holder. Membership discounts apply to the base court price only, never the extra-player surcharge.';
@@ -579,7 +681,7 @@
     const bandBlocks = state.bands.map((b) => {
       const params = bandParamRows(b).map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
       const cellVal = (v, per) => per ? `${money(v)} each` : money(v);
-      let calcHead = '<tr><th>Quantity</th>' + (cfg.baseCol ? '<th>Base price</th>' : '') + `<th>Non-member${nonQual}</th><th>Members (default)${memQual}</th>`;
+      let calcHead = '<tr><th>Quantity</th>' + (cfg.baseCol ? '<th>Base price</th>' : '') + `<th>Non-member${nonQual}</th>` + (cfg.nonBreakdown ? '<th>Non-member (per person)</th>' : '') + `<th>Members (default)${memQual}</th>`;
       state.memberships.forEach((m) => { calcHead += `<th>${esc(m.name || 'Membership')}</th>`; });
       calcHead += '</tr>';
       let calcBody = '';
@@ -587,12 +689,14 @@
         const n = r.players;
         calcBody += `<tr><td>${esc(r.label)}</td>`;
         if (cfg.baseCol) calcBody += `<td>${money(courtPriceFull(b, n))}</td>`;
-        calcBody += `<td>${cellVal(priceFor(b, n, 0, cfg.nonPerPerson), cfg.nonPerPerson)}</td><td>${cellVal(priceFor(b, n, b.memberDiscount, cfg.memPerPerson), cfg.memPerPerson)}</td>`;
+        calcBody += `<td>${cellVal(priceFor(b, n, 0, cfg.nonPerPerson), cfg.nonPerPerson)}</td>`;
+        if (cfg.nonBreakdown) calcBody += `<td>${cellVal(priceFor(b, n, 0, true), true)}</td>`;
+        calcBody += `<td>${cellVal(priceFor(b, n, b.memberDiscount, cfg.memPerPerson), cfg.memPerPerson)}</td>`;
         state.memberships.forEach((m) => { calcBody += `<td>${cellVal(priceFor(b, n, memPct(b, m), cfg.memPerPerson), cfg.memPerPerson)}</td>`; });
         calcBody += '</tr>';
       });
       return `<section class="p-band">
-        <h3>${esc(b.name)}</h3>
+        <h3>${esc(b.name)} Schedule</h3>
         <div class="p-cols">
           <div><h4>Settings entered</h4><table class="p"><tbody>${params}</tbody></table></div>
           <div><h4>Resulting price</h4><table class="p calc"><thead>${calcHead}</thead><tbody>${calcBody}</tbody></table></div>
@@ -649,7 +753,7 @@
       <p class="sub">${esc(modelBlurb)}</p>
       <h2>Pricing structure</h2>${structTable}
       <h2>Memberships</h2>${memList}
-      <h2>Time bands</h2>${bandBlocks}
+      <h2>Time schedules</h2>${bandBlocks}
       <h2>Configuration code</h2>
       <p class="sub">PodPlay staff: paste this code into the ${esc(modelBadge)} model of the Court Pricing Configuration tool to load these exact settings. The code only applies to the same model it was made in.</p>
       <div class="code-box">${esc(configCode)}</div>
@@ -668,8 +772,39 @@
     setTimeout(() => { win.print(); }, 350);
   }
 
+  // ---------- Structure constraints (min ≤ base group ≤ max) ----------
+  // Returns [{ fields:[inputId,…], msg }]. Empty when the sizes are consistent.
+  function structureIssues() {
+    const base = Math.round(num(state.structure.baseGroup));
+    const max = Math.round(num(state.structure.maxPlayers));
+    const min = Math.round(num(state.structure.minGroup));
+    const out = [];
+    if (min > base) out.push({ fields: ['minGroup', 'baseGroup'], msg: 'Minimum group size cannot be greater than base group size.' });
+    if (base > max) out.push({ fields: ['baseGroup', 'maxPlayers'], msg: 'Base group size cannot be greater than maximum players.' });
+    return out;
+  }
+
+  // Paint the offending inputs and the inline message under the structure row.
+  function renderStructureValidation() {
+    const issues = structureIssues();
+    const bad = new Set(issues.flatMap((i) => i.fields));
+    ['baseGroup', 'maxPlayers', 'minGroup'].forEach((id) => {
+      const el = document.getElementById(id);
+      const wrap = el && el.closest('.input-affix');
+      if (wrap) wrap.classList.toggle('invalid', bad.has(id));
+    });
+    const box = document.getElementById('structError');
+    if (box) {
+      box.innerHTML = issues.map((i) => escapeHtml(i.msg)).join('<br>');
+      box.hidden = !issues.length;
+    }
+    return issues;
+  }
+
   // ---------- Validation gate for Save ----------
   function firstInvalid() {
+    const si = structureIssues();
+    if (si.length) return si[0].msg;
     for (const b of state.bands) {
       if (!isPct(b.memberDiscount)) return `${b.name}: default member discount must be 0–100.`;
       if (!isPct(b.lessonNon)) return `${b.name}: non-member lesson discount must be 0–100.`;
@@ -897,6 +1032,40 @@
     }
   }
 
+  // ---------- Header "?" tooltips ----------
+  // A single body-level bubble positioned on hover/focus. Living on <body> keeps
+  // it clear of the table's overflow scroller (which would otherwise clip it).
+  function bindTips() {
+    let bubble;
+    const ensure = () => {
+      if (!bubble) { bubble = document.createElement('div'); bubble.className = 'tip-bubble'; bubble.hidden = true; document.body.appendChild(bubble); }
+      return bubble;
+    };
+    const show = (el) => {
+      const b = ensure();
+      b.textContent = el.getAttribute('data-tip') || el.getAttribute('aria-label') || '';
+      if (!b.textContent) return;
+      b.hidden = false;
+      b.style.visibility = 'hidden';
+      const r = el.getBoundingClientRect();
+      const bw = b.offsetWidth, bh = b.offsetHeight;
+      let top = r.top - bh - 8;
+      if (top < 8) top = r.bottom + 8;               // flip below when near the top
+      let left = r.left + r.width / 2 - bw / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+      b.style.top = `${Math.round(top)}px`;
+      b.style.left = `${Math.round(left)}px`;
+      b.style.visibility = 'visible';
+    };
+    const hide = () => { if (bubble) bubble.hidden = true; };
+    const hit = (e) => (e.target.closest ? e.target.closest('.th-tip') : null);
+    document.addEventListener('mouseover', (e) => { const t = hit(e); if (t) show(t); });
+    document.addEventListener('mouseout', (e) => { if (hit(e)) hide(); });
+    document.addEventListener('focusin', (e) => { const t = hit(e); if (t) show(t); });
+    document.addEventListener('focusout', (e) => { if (hit(e)) hide(); });
+    window.addEventListener('scroll', hide, true);
+  }
+
   function bindCx() {
     document.querySelectorAll('#cxPanel .cx-seg button').forEach((b) => {
       b.addEventListener('click', () => {
@@ -1009,6 +1178,21 @@
     });
 
     if (applyBtn) applyBtn.addEventListener('click', () => {
+      const raw = (input ? input.value : '').trim();
+      // A pasted PodPlay court JSON starts with "{" — import it into the current
+      // model (a Court+-only JSON is refused in Spot+/Hybrid). Otherwise it is a code.
+      if (raw.startsWith('{')) {
+        let parsed;
+        try { parsed = JSON.parse(raw); }
+        catch (_) { toast('That does not look like valid JSON.', false); return; }
+        const imp = podplayJsonToConfig(parsed, state.model);
+        if (!imp.ok) { toast(imp.error, false); return; }
+        hydrate(imp.cfg);
+        bootRender();
+        if (input) input.value = '';
+        toast(`PodPlay JSON imported into ${MODEL_LABEL[state.model]}.`);
+        return;
+      }
       const res = decodeConfigCode(input ? input.value : '');
       if (!res.ok) { toast(res.error, false); return; }
       // A code only applies within its own model (same structure) — no cross-model loads.
@@ -1130,6 +1314,7 @@
     bindCodePanel();
     bindModals();
     bindCx();
+    bindTips();
     bootRender();
     applyAdminChrome();
     applyLockChrome();
