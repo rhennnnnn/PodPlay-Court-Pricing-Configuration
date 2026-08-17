@@ -281,8 +281,8 @@
   function playerRows() {
     const mn = Math.max(1, Math.round(num(state.structure.minGroup)));
     const max = Math.max(mn, Math.round(num(state.structure.maxPlayers)));
-    const rows = [{ players: mn, label: mn > 1 ? `1-${mn} players` : `1 player` }];
-    for (let n = mn + 1; n <= max; n++) rows.push({ players: n, label: `${n} players` });
+    const rows = [{ players: mn, label: mn > 1 ? `1-${mn} players` : `1 player`, cluster: mn > 1 }];
+    for (let n = mn + 1; n <= max; n++) rows.push({ players: n, label: `${n} players`, cluster: false });
     return rows;
   }
 
@@ -518,7 +518,9 @@
         body += `<tr><td class="qty">${r.label}</td>`;
         if (cfg.baseCol) { const cf = courtPriceFull(band, n); body += `<td class="${cf < 0 ? 'val-neg' : ''}">${money(cf)}</td>`; }
         body += cell(priceFor(band, n, 0, cfg.nonPerPerson), cfg.nonPerPerson);
-        if (cfg.nonBreakdown) body += cell(priceFor(band, n, 0, true), true);
+        // Clustered rows (e.g. "1-2") show the HIGHEST per-person price — the
+        // single joiner paying the whole court price alone (÷1), not ÷2.
+        if (cfg.nonBreakdown) body += cell(priceFor(band, r.cluster ? 1 : n, 0, true), true);
         body += cell(priceFor(band, n, band.memberDiscount, cfg.memPerPerson), cfg.memPerPerson);
         mems.forEach((m) => { body += cell(priceFor(band, n, memPct(band, m), cfg.memPerPerson), cfg.memPerPerson); });
         body += '</tr>';
@@ -604,7 +606,7 @@
           if (cfg.baseCol) row.basePrice = +courtPriceFull(b, n).toFixed(2);
           row.nonMember = +priceFor(b, n, 0, cfg.nonPerPerson).toFixed(2);
           row.nonMemberBasis = cfg.nonPerPerson ? 'per-person' : 'per-court';
-          if (cfg.nonBreakdown) row.nonMemberPerPerson = +priceFor(b, n, 0, true).toFixed(2);
+          if (cfg.nonBreakdown) row.nonMemberPerPerson = +priceFor(b, r.cluster ? 1 : n, 0, true).toFixed(2);
           row.member = +priceFor(b, n, b.memberDiscount, cfg.memPerPerson).toFixed(2);
           row.memberBasis = cfg.memPerPerson ? 'per-person' : 'per-court';
           row.memberships = state.memberships.map((m) => ({
@@ -690,7 +692,7 @@
         calcBody += `<tr><td>${esc(r.label)}</td>`;
         if (cfg.baseCol) calcBody += `<td>${money(courtPriceFull(b, n))}</td>`;
         calcBody += `<td>${cellVal(priceFor(b, n, 0, cfg.nonPerPerson), cfg.nonPerPerson)}</td>`;
-        if (cfg.nonBreakdown) calcBody += `<td>${cellVal(priceFor(b, n, 0, true), true)}</td>`;
+        if (cfg.nonBreakdown) calcBody += `<td>${cellVal(priceFor(b, r.cluster ? 1 : n, 0, true), true)}</td>`;
         calcBody += `<td>${cellVal(priceFor(b, n, b.memberDiscount, cfg.memPerPerson), cfg.memPerPerson)}</td>`;
         state.memberships.forEach((m) => { calcBody += `<td>${cellVal(priceFor(b, n, memPct(b, m), cfg.memPerPerson), cfg.memPerPerson)}</td>`; });
         calcBody += '</tr>';
