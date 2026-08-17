@@ -28,14 +28,14 @@ Then visit `http://localhost:8091/`.
 
 The site has two modes (soft-gated — this is static hosting with no real login, so treat it as convenience, not security):
 
-- **Admin console** — the root URL (passcode-gated). Full access to all three models plus a **Share a client link** panel and code generation.
-- **Client view** — a `?view=client` link (no passcode, apply-only for the share panel). Clients configure pricing, apply a code, and export.
+- **Admin console** — the root URL (passcode-gated). Full access to all three models. The top nav holds the pricing-model switch, a **Config code** button (copy/apply, opens a dialog), and an admin-only **Share** button that opens the client-link dialog.
+- **Client view** — a `?view=client` link (no passcode). Clients get the model switch and the **Config code** dialog (copy/apply), but not the **Share** button. Single-model links (`&model=…`) hide the switch and show a fixed model badge instead.
 
 ## Sharing a configuration
 
 Configurations are shared as a copy-paste **configuration code** — `PPCC1-<COURT|SPOT|HYB>-…`. A code is **model-locked**: a Court+ code only loads into Court+, a Spot+ code only into Spot+, etc.
 
-From the admin console you can also copy **client links**:
+From the admin console's **Share** dialog you can also copy **client links**:
 
 - `?view=client` — client can switch between all three models.
 - `?view=client&model=court-plus` (or `spot-plus` / `hybrid`) — client is locked to that one model.
