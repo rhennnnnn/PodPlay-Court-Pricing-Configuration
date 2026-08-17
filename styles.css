@@ -148,11 +148,17 @@ body {
   display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;
 }
 .col-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-.col-side { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px; }
+/* The side rails stick under the header and scroll on their own when taller than
+   the viewport, so a long Summary/preview never forces the whole page to scroll. */
+.col-side { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px;
+  max-height: calc(100vh - 116px); overflow-y: auto; overscroll-behavior: contain; }
 
 /* Three-column layout when the Booking flow panel is present (Court+) */
 .layout.has-cx { max-width: 1440px; grid-template-columns: 300px minmax(0, 1fr) 340px; }
-.col-cx { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px; }
+.col-cx { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px;
+  max-height: calc(100vh - 116px); overflow-y: auto; overscroll-behavior: contain; }
+/* Keep the rail cards at natural height so the column scrolls instead of squishing them */
+.col-side > *, .col-cx > * { flex-shrink: 0; }
 
 /* ---------- Booking flow (CX) panel ---------- */
 .cx-step { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
@@ -460,7 +466,8 @@ table.calc tbody tr:hover td { background: var(--muted); }
 /* ---------- Responsive ---------- */
 @media (max-width: 960px) {
   .layout, .layout.has-cx { grid-template-columns: 1fr; }
-  .col-side, .col-cx { position: static; }
+  /* Stacked: let the columns flow with the page (no inner scroll) */
+  .col-side, .col-cx { position: static; max-height: none; overflow: visible; }
   /* Keep the configurator first; the Booking flow reads as a supporting aside below it */
   .col-main { order: 1; }
   .col-cx { order: 2; }
