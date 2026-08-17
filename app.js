@@ -35,6 +35,61 @@
     return id;
   }
 
+  // ---- Admin gate + configuration codes ----
+  // A configuration code is a copy-paste token (like a game crosshair code) that
+  // encodes a whole configuration. The model is baked into the tag, so a Court+
+  // code will NOT apply on top of a Spot+ or Hybrid setup, and vice-versa.
+  //
+  // The admin console lives at ?view=admin and asks for this passcode before it
+  // will generate (export) codes. Change ADMIN_PASSCODE to your own secret.
+  // NOTE: static hosting has no real login — the passcode only lightly gates the
+  // export controls and is visible in this file's source. It is obscurity, not security.
+  const ADMIN_PASSCODE = 'podplay-admin';
+  const ADMIN_FLAG = 'courtPlusAdminOk';
+  const MODEL_TAG = { 'court-plus': 'COURT', 'spot-plus': 'SPOT', 'hybrid': 'HYB' };
+  const TAG_MODEL = { COURT: 'court-plus', SPOT: 'spot-plus', HYB: 'hybrid' };
+  const MODEL_LABEL = { 'court-plus': 'Court+', 'spot-plus': 'Spot+', 'hybrid': 'Hybrid' };
+  let isAdmin = false;
+
+  const b64urlEncode = (str) =>
+    btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const b64urlDecode = (str) =>
+    decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
+
+  // Build a code for the current model + settings.
+  function encodeConfigCode() {
+    return `PPCC1-${MODEL_TAG[state.model]}-${b64urlEncode(JSON.stringify(exportConfig()))}`;
+  }
+  // Parse a code. Returns { ok, model, cfg } or { ok:false, error }.
+  function decodeConfigCode(raw) {
+    const code = (raw || '').trim();
+    const m = code.match(/^PPCC1-(COURT|SPOT|HYB)-([A-Za-z0-9\-_]+)$/);
+    if (!m) return { ok: false, error: 'That does not look like a valid configuration code.' };
+    const model = TAG_MODEL[m[1]];
+    let cfg;
+    try { cfg = JSON.parse(b64urlDecode(m[2])); }
+    catch (_) { return { ok: false, error: 'This configuration code is corrupted and could not be read.' }; }
+    if (!cfg || cfg.model !== model || !MODELS[model]) {
+      return { ok: false, error: 'This configuration code is not recognised.' };
+    }
+    return { ok: true, model, cfg };
+  }
+
+  // Copy helper with a manual-selection fallback for locked-down clipboards.
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (_) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (_) { return false; }
+    }
+  }
+
   // ---- Band presets (mirror the PodPlay pricing example) ----
   const BAND_PRESETS = {
     'OFF PEAK': { swatch: '#3B82F6', memberDiscount: 100, base: 20, surcharge: 5, lockNon: 10, lockMem: 10, lessonNon: 0, lessonMem: 0 },
@@ -762,6 +817,61 @@
     });
   }
 
+  // ---------- Configuration code panel ----------
+  function bindCodePanel() {
+    const copyBtn = $('#copyCodeBtn');
+    const applyBtn = $('#applyCodeBtn');
+    const input = $('#codeInput');
+
+    if (copyBtn) copyBtn.addEventListener('click', async () => {
+      const bad = firstInvalid();
+      if (bad) { toast(bad, false); return; }
+      const code = encodeConfigCode();
+      const ok = await copyText(code);
+      if (ok) {
+        toast(`${MODEL_LABEL[state.model]} configuration code copied — send it to your client.`);
+      } else {
+        if (input) { input.value = code; input.focus(); input.select(); }
+        toast('Could not copy automatically — the code is selected below, copy it manually.', false);
+      }
+    });
+
+    if (applyBtn) applyBtn.addEventListener('click', () => {
+      const res = decodeConfigCode(input ? input.value : '');
+      if (!res.ok) { toast(res.error, false); return; }
+      // A code only applies within its own model (same structure) — no cross-model loads.
+      if (res.model !== state.model) {
+        toast(`This is a ${MODEL_LABEL[res.model]} code. Switch to ${MODEL_LABEL[res.model]} first, then apply it.`, false);
+        return;
+      }
+      hydrate(res.cfg);
+      bootRender();
+      if (input) input.value = '';
+      toast(`${MODEL_LABEL[res.model]} configuration applied.`);
+    });
+  }
+
+  // ---------- Admin gate (soft; static hosting has no real login) ----------
+  function resolveAdmin() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('view') !== 'admin') return false;
+    if (sessionStorage.getItem(ADMIN_FLAG) === '1') return true;
+    const entry = window.prompt('Admin passcode:');
+    if (entry === ADMIN_PASSCODE) { sessionStorage.setItem(ADMIN_FLAG, '1'); return true; }
+    if (entry !== null) window.alert('Incorrect passcode — opening in client mode (you can apply a code, but not generate one).');
+    return false;
+  }
+
+  function applyAdminChrome() {
+    document.body.classList.toggle('is-admin', isAdmin);
+    const exportBox = document.getElementById('codeExport');
+    if (exportBox) exportBox.hidden = !isAdmin;
+    const pill = document.getElementById('adminPill');
+    if (pill) pill.hidden = !isAdmin;
+    const codeCard = document.getElementById('codeCard');
+    if (codeCard) codeCard.hidden = false; // both admins and clients see the card
+  }
+
   // ---------- Boot ----------
   function bootRender() {
     const court = $('#courtName');
@@ -785,12 +895,16 @@
       if (raw) hydrate(JSON.parse(raw));
     } catch (_) { /* ignore corrupt storage */ }
 
+    isAdmin = resolveAdmin();
+
     bindTheme();
     bindModel();
     bindStructure();
     bindDayPass();
     bindToolbar();
+    bindCodePanel();
     bootRender();
+    applyAdminChrome();
   }
 
   // Rebuild internal state from an exported config shape.
