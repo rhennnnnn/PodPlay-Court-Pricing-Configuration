@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <!-- ============ HEADER ============ -->
@@ -25,13 +25,37 @@
         <h1>Court Pricing Configuration</h1>
         <p>Configure your court pricing, then save or export it.</p>
       </div>
-      <span class="model-badge" id="modelBadge"><span class="dot"></span> Court+ · Per Court</span>
+      <span class="model-badge" id="modelBadge" hidden><span class="dot"></span> Court+ · Per Court</span>
       <span class="admin-pill" id="adminPill" hidden>Admin</span>
     </div>
+
+    <!-- Pricing model switch (nav-level; hidden on single-model client links) -->
+    <div class="model-switch-nav" id="modelSwitchNav">
+      <span class="seg" role="tablist" aria-label="Pricing model">
+        <button class="seg-btn is-active" id="modelCourt" type="button" role="tab" aria-selected="true">
+          <strong>Court+</strong><span>Per Court</span>
+        </button>
+        <button class="seg-btn" id="modelSpot" type="button" role="tab" aria-selected="false">
+          <strong>Spot+</strong><span>Per Spot</span>
+        </button>
+        <button class="seg-btn" id="modelHybrid" type="button" role="tab" aria-selected="false">
+          <strong>Hybrid</strong><span>Mixed</span>
+        </button>
+      </span>
+    </div>
+
     <div class="header-actions">
       <span class="save-status" id="saveStatus" aria-live="polite">
         <span class="save-dot"></span><span class="save-status-text">Saved</span>
       </span>
+      <button class="btn btn-ghost" id="openCodeBtn" title="Configuration code" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span class="btn-label">Config code</span>
+      </button>
+      <button class="btn btn-ghost" id="openShareBtn" title="Share a client link" aria-haspopup="dialog" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>
+        <span class="btn-label">Share</span>
+      </button>
       <button class="btn btn-icon btn-ghost" id="themeToggle" title="Toggle theme" aria-label="Toggle light/dark theme">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
@@ -64,64 +88,6 @@
           <div class="field" style="align-items:stretch">
             <label for="courtName">Court group this pricing applies to</label>
             <input type="text" id="courtName" class="text-input" placeholder="e.g. Standard Courts, Skinny Singles Courts" aria-label="Court group this pricing applies to" />
-          </div>
-        </div>
-      </section>
-
-      <!-- Pricing model switch -->
-      <section class="card" id="modelSwitchCard">
-        <div class="card-body model-switch-body">
-          <div class="model-switch-info">
-            <span class="model-switch-label">Pricing model</span>
-            <span class="model-switch-desc" id="modelDesc">Court+ — one court price is shared across the whole group.</span>
-          </div>
-          <div class="seg" role="tablist" aria-label="Pricing model">
-            <button class="seg-btn is-active" id="modelCourt" type="button" role="tab" aria-selected="true">
-              <strong>Court+</strong><span>Per Court</span>
-            </button>
-            <button class="seg-btn" id="modelSpot" type="button" role="tab" aria-selected="false">
-              <strong>Spot+</strong><span>Per Spot</span>
-            </button>
-            <button class="seg-btn" id="modelHybrid" type="button" role="tab" aria-selected="false">
-              <strong>Hybrid</strong><span>Mixed</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Configuration code (copy/paste a whole config, like a crosshair code) -->
-      <section class="card" id="codeCard" hidden>
-        <div class="card-head">
-          <h2>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            Configuration code
-          </h2>
-          <p class="desc">Share a whole configuration as a copy-paste code. A code only applies to the model it was made in: a Court+ code will not load into Spot+ or Hybrid.</p>
-        </div>
-        <div class="card-body">
-          <button class="btn btn-primary" id="copyCodeBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            Copy configuration code
-          </button>
-          <p class="section-note">Generates a code for the current model and settings that you can copy and share.</p>
-
-          <label class="code-label" for="codeInput" style="margin-top:16px">Apply a configuration code</label>
-          <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code here…" aria-label="Configuration code"></textarea>
-          <button class="btn" id="applyCodeBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Apply code
-          </button>
-          <p class="section-note">Applying a code replaces the current settings for this model. Your work is saved automatically on this device and stays after a refresh.</p>
-
-          <div class="code-export" id="codeExport" hidden>
-            <span class="band-sub code-share-title">Share a client link</span>
-            <div class="share-grid">
-              <button class="btn btn-sm" data-share="court-plus">Copy Court+ link</button>
-              <button class="btn btn-sm" data-share="spot-plus">Copy Spot+ link</button>
-              <button class="btn btn-sm" data-share="hybrid">Copy Hybrid link</button>
-              <button class="btn btn-sm" data-share="all">Copy all-models link</button>
-            </div>
-            <p class="section-note">Each single-model link opens the tool locked to that one pricing model (the client can't switch). The all-models link lets the client choose between all three. All client links skip the passcode and are apply-only.</p>
           </div>
         </div>
       </section>
@@ -241,7 +207,63 @@
     </aside>
   </div>
 
+  <!-- ============ MODAL: Configuration code ============ -->
+  <div class="modal-overlay" id="codeModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="codeModalTitle">
+      <div class="modal-head">
+        <h2 id="codeModalTitle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Configuration code
+        </h2>
+        <button class="modal-close" data-close aria-label="Close configuration code">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="desc" style="margin:0 0 14px">Share a whole configuration as a copy-paste code. A code only applies to the model it was made in: a Court+ code will not load into Spot+ or Hybrid.</p>
+        <button class="btn btn-primary" id="copyCodeBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy configuration code
+        </button>
+        <p class="section-note">Generates a code for the current model and settings that you can copy and share.</p>
+
+        <label class="code-label" for="codeInput" style="margin-top:16px">Apply a configuration code</label>
+        <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code here…" aria-label="Configuration code"></textarea>
+        <button class="btn" id="applyCodeBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply code
+        </button>
+        <p class="section-note">Applying a code replaces the current settings for this model. Your work is saved automatically on this device and stays after a refresh.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Share a client link (admin only) ============ -->
+  <div class="modal-overlay" id="shareModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+      <div class="modal-head">
+        <h2 id="shareModalTitle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>
+          Share a client link
+        </h2>
+        <button class="modal-close" data-close aria-label="Close share panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="shareExport">
+        <p class="desc" style="margin:0 0 14px">Send a client the link to the model they should configure. Each single-model link locks the client to that one pricing model; the all-models link lets them choose between all three.</p>
+        <div class="share-grid">
+          <button class="btn" data-share="court-plus">Copy Court+ link</button>
+          <button class="btn" data-share="spot-plus">Copy Spot+ link</button>
+          <button class="btn" data-share="hybrid">Copy Hybrid link</button>
+          <button class="btn" data-share="all">Copy all-models link</button>
+        </div>
+        <p class="section-note">All client links skip the passcode and are apply-only — the client can build a config and send a code back, but cannot open this admin console.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

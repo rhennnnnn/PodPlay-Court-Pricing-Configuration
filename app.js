@@ -262,7 +262,10 @@
         `<button class="mem-remove" title="Remove membership" aria-label="Remove membership">${ICON.trash}</button>`;
       const nameEl = $('.mem-name', row);
       nameEl.value = mem.name;
-      nameEl.addEventListener('input', () => { mem.name = nameEl.value; recalc(); });
+      // Re-render the bands so this membership's per-band discount label and the
+      // computed-table column header pick up the new name immediately (the name
+      // input lives in #memList, so rebuilding #bands never steals its focus).
+      nameEl.addEventListener('input', () => { mem.name = nameEl.value; renderBands(); recalc(); });
       $('.mem-remove', row).addEventListener('click', () => {
         state.memberships.splice(i, 1);
         state.bands.forEach((b) => { delete b.memDiscounts[mem.id]; });
@@ -838,7 +841,7 @@
 
     // Admin-only: copy a client link. A single-model link locks the client to that
     // pricing model; the all-models link lets the client switch between all three.
-    document.querySelectorAll('#codeExport [data-share]').forEach((btn) => {
+    document.querySelectorAll('#shareModal [data-share]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const m = btn.getAttribute('data-share');
         const q = m === 'all' ? '?view=client' : `?view=client&model=${m}`;
@@ -891,20 +894,63 @@
     return false;
   }
 
-  // Restricted client link: hide the model switch so the client stays on one model.
+  // Restricted client link: hide the header model switch so the client stays on
+  // one model, and show the static model badge in its place.
   function applyLockChrome() {
-    const card = document.getElementById('modelSwitchCard');
-    if (card) card.hidden = !!LOCKED_MODEL;
+    const nav = document.getElementById('modelSwitchNav');
+    const badge = document.getElementById('modelBadge');
+    if (nav) nav.hidden = !!LOCKED_MODEL;
+    if (badge) badge.hidden = !LOCKED_MODEL;
   }
 
   function applyAdminChrome() {
     document.body.classList.toggle('is-admin', isAdmin);
-    const exportBox = document.getElementById('codeExport');
-    if (exportBox) exportBox.hidden = !isAdmin;
     const pill = document.getElementById('adminPill');
     if (pill) pill.hidden = !isAdmin;
-    const codeCard = document.getElementById('codeCard');
-    if (codeCard) codeCard.hidden = false; // both admins and clients see the card
+    // Only admins can hand out client links; clients still get the Config code button.
+    const shareBtn = document.getElementById('openShareBtn');
+    if (shareBtn) shareBtn.hidden = !isAdmin;
+  }
+
+  // ---------- Modals (Config code / Share client link) ----------
+  let lastFocused = null;
+  function openModal(id) {
+    const overlay = document.getElementById(id);
+    if (!overlay) return;
+    lastFocused = document.activeElement;
+    overlay.hidden = false;
+    const focusable = overlay.querySelector('button, [href], input, textarea, select');
+    if (focusable) focusable.focus();
+  }
+  function closeModal(overlay) {
+    if (!overlay || overlay.hidden) return;
+    overlay.hidden = true;
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+  function bindModals() {
+    const openCode = document.getElementById('openCodeBtn');
+    const openShare = document.getElementById('openShareBtn');
+    if (openCode) openCode.addEventListener('click', () => openModal('codeModal'));
+    if (openShare) openShare.addEventListener('click', () => openModal('shareModal'));
+    document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+      // click the dimmed backdrop (not the dialog) to dismiss
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(overlay); });
+      overlay.querySelectorAll('[data-close]').forEach((b) =>
+        b.addEventListener('click', () => closeModal(overlay)));
+      // keep Tab focus inside the open dialog
+      overlay.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const items = overlay.querySelectorAll('button, [href], input, textarea, select');
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.modal-overlay:not([hidden])').forEach(closeModal);
+    });
   }
 
   // ---------- Boot ----------
@@ -939,6 +985,7 @@
     bindDayPass();
     bindToolbar();
     bindCodePanel();
+    bindModals();
     bootRender();
     applyAdminChrome();
     applyLockChrome();
