@@ -243,9 +243,9 @@ input[type=number]::-webkit-inner-spin-button { opacity: .35; }
 .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
 
 .code-export {
-  margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border);
+  margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--border);
 }
-.code-share-title { display: block; margin-bottom: 10px; }
+.code-export .code-share-title { display: block; margin: 0 0 12px; }
 .share-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
 .code-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted-fg); margin: 0 0 6px; }
 .code-input {
