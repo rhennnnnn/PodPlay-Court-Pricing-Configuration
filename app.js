@@ -774,11 +774,26 @@
   // priced and paid for, based on who booked, who was invited, and who pays.
   // It is NOT part of the saved pricing config — purely a customer-experience aid.
   // Only shown for Court+ (the other models' flows are not defined yet).
-  const cxState = { holder: 'nm', invited: 'nm', pays: 'they', pass: false };
+  // holder/invited: 'nm'|'m'; pays: 'they'|'cover'.
+  // pass = Reservation Pass, guestPass = Reservation Guest Pass — both only apply
+  // to a member Reservation Holder (guestPass only in Spot+).
+  const cxState = { holder: 'nm', invited: 'nm', pays: 'they', pass: false, guestPass: false };
 
-  function cxCompute() {
+  // The member-invitee note: a member being invited to pay their own spot can use
+  // their own Reservation Pass when they accept. It applies wherever the invitee is
+  // charged per person — always in Spot+, and in Hybrid only when the holder is a
+  // member (a non-member Hybrid holder books per court, so the note does not apply).
+  const CX_INVITEE_NOTE = 'If the member invitee has a Reservation Pass, they can use it when they accept the invite.';
+  function cxNote() {
+    const memberInviteePaying = cxState.invited === 'm' && cxState.pays === 'they';
+    if (state.model === 'spot-plus') return memberInviteePaying ? CX_INVITEE_NOTE : '';
+    if (state.model === 'hybrid') return (cxState.holder === 'm' && memberInviteePaying) ? CX_INVITEE_NOTE : '';
+    return '';
+  }
+
+  // ---- Court+ flow: one shared court price, discounted on base for a member holder ----
+  function cxComputeCourt() {
     const H = cxState.holder, P = cxState.pays, R = cxState.pass;
-    // A member Reservation Holder's Reservation Pass covers the whole court.
     if (H === 'm' && R) {
       return {
         pricing: 'The full court price is covered by the Reservation Pass.',
@@ -799,21 +814,66 @@
     return { pricing, payment };
   }
 
+  // ---- Spot+ flow: each player pays their own per-person price; a member holder
+  // may hold a Reservation Pass (covers their own spot) and a Reservation Guest
+  // Pass (covers an invitee's spot when the holder is covering that spot) ----
+  function cxComputeSpot() {
+    const H = cxState.holder, P = cxState.pays, RP = cxState.pass, GP = cxState.guestPass;
+    const pricing = 'Each player has their own pricing based on the group size selected.';
+    let payment;
+    if (H === 'nm') {
+      payment = P === 'they'
+        ? 'Each player pays their own pricing.'
+        : "The Reservation Holder pays/covers the invitee's pricing.";
+    } else if (P === 'they') {
+      payment = 'Each player pays their own pricing.';
+      if (RP) payment += " Member's Reservation Pass covers their own pricing only.";
+      if (GP) payment += ' Reservation Guest Pass of Member Reservation Holder does not get used as they do not cover.';
+    } else { // member holder, covering the invitee
+      if (RP && GP) {
+        payment = "Member's Reservation Pass covers their own pricing only. Reservation Guest Pass of Member Reservation Holder covers the invitee spot pricing.";
+      } else if (!RP && GP) {
+        payment = 'Reservation Holder pays their own pricing. Reservation Guest Pass of Member Reservation Holder covers the invitee spot pricing.';
+      } else if (RP && !GP) {
+        payment = "The Reservation Holder pays/covers the invitee's pricing. Member's Reservation Pass covers their own pricing only.";
+      } else {
+        payment = "The Reservation Holder pays/covers the invitee's pricing.";
+      }
+    }
+    return { pricing, payment };
+  }
+
+  // Hybrid: a non-member holder books per court (Court+ text); a member holder is
+  // charged per person (Spot+ text). Court+ and Spot+ use their own flow throughout.
+  function cxCompute() {
+    if (state.model === 'spot-plus') return cxComputeSpot();
+    if (state.model === 'hybrid') return cxState.holder === 'm' ? cxComputeSpot() : cxComputeCourt();
+    return cxComputeCourt();
+  }
+
   function renderCx() {
     const panel = document.getElementById('cxPanel');
     const layout = document.querySelector('.layout');
     if (!panel || !layout) return;
-    const on = state.model === 'court-plus';
+    // All three models now have a defined booking flow.
+    const on = ['court-plus', 'spot-plus', 'hybrid'].includes(state.model);
     panel.hidden = !on;
     layout.classList.toggle('has-cx', on);
     if (!on) return;
 
-    // The Reservation Pass toggle only applies to a member Reservation Holder.
+    const isMember = cxState.holder === 'm';
+    // Reservation Pass applies to a member holder in both models.
     const passWrap = document.getElementById('cxPass');
-    const chk = document.getElementById('cxPassChk');
-    const showPass = cxState.holder === 'm';
-    if (passWrap) passWrap.hidden = !showPass;
-    if (!showPass) { cxState.pass = false; if (chk) chk.checked = false; }
+    const passChk = document.getElementById('cxPassChk');
+    if (passWrap) passWrap.hidden = !isMember;
+    if (!isMember) { cxState.pass = false; if (passChk) passChk.checked = false; }
+    // Reservation Guest Pass applies wherever a member holder is charged per person:
+    // Spot+ always, and Hybrid (a member Hybrid holder is per person).
+    const guestWrap = document.getElementById('cxGuestPass');
+    const guestChk = document.getElementById('cxGuestPassChk');
+    const showGuest = isMember && (state.model === 'spot-plus' || state.model === 'hybrid');
+    if (guestWrap) guestWrap.hidden = !showGuest;
+    if (!showGuest) { cxState.guestPass = false; if (guestChk) guestChk.checked = false; }
 
     document.querySelectorAll('#cxPanel .cx-seg').forEach((seg) => {
       const key = seg.getAttribute('data-cx');
@@ -829,6 +889,12 @@
     const payEl = document.getElementById('cxPayment');
     if (pEl) pEl.textContent = pricing;
     if (payEl) payEl.textContent = payment;
+    const noteEl = document.getElementById('cxNote');
+    if (noteEl) {
+      const note = cxNote();
+      noteEl.textContent = note;
+      noteEl.hidden = !note;
+    }
   }
 
   function bindCx() {
@@ -839,8 +905,10 @@
         renderCx();
       });
     });
-    const chk = document.getElementById('cxPassChk');
-    if (chk) chk.addEventListener('change', () => { cxState.pass = chk.checked; renderCx(); });
+    const passChk = document.getElementById('cxPassChk');
+    if (passChk) passChk.addEventListener('change', () => { cxState.pass = passChk.checked; renderCx(); });
+    const guestChk = document.getElementById('cxGuestPassChk');
+    if (guestChk) guestChk.addEventListener('change', () => { cxState.guestPass = guestChk.checked; renderCx(); });
   }
 
   function setModel(model) {

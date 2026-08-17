@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
   <!-- ============ HEADER ============ -->
@@ -114,6 +114,11 @@
             <span>Reservation Holder has a Reservation Pass</span>
           </label>
 
+          <label class="cx-pass" id="cxGuestPass" hidden>
+            <input type="checkbox" id="cxGuestPassChk" />
+            <span>Reservation Holder has a Reservation Guest Pass</span>
+          </label>
+
           <div class="cx-result">
             <div class="cx-result-block">
               <span class="cx-result-label">Pricing</span>
@@ -124,6 +129,8 @@
               <p id="cxPayment"></p>
             </div>
           </div>
+
+          <p class="cx-note" id="cxNote" hidden></p>
         </div>
       </section>
     </aside>
@@ -320,6 +327,6 @@
   </div>
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
