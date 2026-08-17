@@ -821,7 +821,14 @@
   function bindCodePanel() {
     const copyBtn = $('#copyCodeBtn');
     const applyBtn = $('#applyCodeBtn');
+    const clientLinkBtn = $('#copyClientLinkBtn');
     const input = $('#codeInput');
+
+    if (clientLinkBtn) clientLinkBtn.addEventListener('click', async () => {
+      const link = `${location.origin}${location.pathname}?view=client`;
+      const ok = await copyText(link);
+      toast(ok ? 'Client link copied.' : `Copy failed — the link is: ${link}`, ok);
+    });
 
     if (copyBtn) copyBtn.addEventListener('click', async () => {
       const bad = firstInvalid();
@@ -852,9 +859,12 @@
   }
 
   // ---------- Admin gate (soft; static hosting has no real login) ----------
+  // The admin console is the DEFAULT page (the owner's landing page). A shared
+  // client link is the same site with ?view=client — that skips the passcode and
+  // opens in client mode (apply a code, but cannot generate one).
   function resolveAdmin() {
     const params = new URLSearchParams(location.search);
-    if (params.get('view') !== 'admin') return false;
+    if (params.get('view') === 'client') return false;   // shared client link
     if (sessionStorage.getItem(ADMIN_FLAG) === '1') return true;
     const entry = window.prompt('Admin passcode:');
     if (entry === ADMIN_PASSCODE) { sessionStorage.setItem(ADMIN_FLAG, '1'); return true; }

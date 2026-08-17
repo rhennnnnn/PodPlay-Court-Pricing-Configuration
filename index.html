@@ -105,6 +105,11 @@
               Copy configuration code
             </button>
             <p class="section-note">Generates a code for the current model and settings, then copies it to your clipboard to send to a client.</p>
+            <button class="btn btn-sm" id="copyClientLinkBtn" style="margin-top:10px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Copy client link
+            </button>
+            <p class="section-note">The client link (<code>?view=client</code>) opens this tool in client mode — no passcode, apply-only. Send it alongside a configuration code.</p>
           </div>
           <label class="code-label" for="codeInput">Apply a configuration code</label>
           <textarea id="codeInput" class="text-input code-input" rows="2" placeholder="Paste a configuration code here…" aria-label="Configuration code"></textarea>
