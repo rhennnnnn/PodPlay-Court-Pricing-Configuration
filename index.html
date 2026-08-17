@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
   <!-- ============ HEADER ============ -->
@@ -72,6 +72,62 @@
 
   <!-- ============ LAYOUT ============ -->
   <div class="layout">
+    <!-- LEFT COLUMN: Booking flow (Court+ only; illustrative CX walkthrough) -->
+    <aside class="col-cx" id="cxPanel" hidden>
+      <section class="card cx-card">
+        <div class="card-head">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/><path d="M3 6v12"/><path d="M21 6v12"/></svg>
+            Booking flow
+          </h2>
+          <p class="desc">See how a booking is priced and paid, step by step, based on who is playing. This is an illustration of the customer experience — it does not change your pricing.</p>
+        </div>
+        <div class="card-body">
+          <div class="cx-step">
+            <span class="cx-step-label"><span class="cx-step-num">1</span> Who made the booking</span>
+            <span class="cx-step-hint">The Reservation Holder</span>
+            <div class="cx-seg" data-cx="holder" role="group" aria-label="Who made the booking">
+              <button type="button" data-val="nm" class="is-active" aria-pressed="true">Non-member</button>
+              <button type="button" data-val="m" aria-pressed="false">Member</button>
+            </div>
+          </div>
+
+          <div class="cx-step">
+            <span class="cx-step-label"><span class="cx-step-num">2</span> Who they are inviting</span>
+            <div class="cx-seg" data-cx="invited" role="group" aria-label="Who they are inviting">
+              <button type="button" data-val="nm" class="is-active" aria-pressed="true">Non-member</button>
+              <button type="button" data-val="m" aria-pressed="false">Member</button>
+            </div>
+          </div>
+
+          <div class="cx-step">
+            <span class="cx-step-label"><span class="cx-step-num">3</span> Who will pay?</span>
+            <span class="cx-step-hint">For the invited player's spot</span>
+            <div class="cx-seg" data-cx="pays" role="group" aria-label="Who will pay">
+              <button type="button" data-val="they" class="is-active" aria-pressed="true">They pay</button>
+              <button type="button" data-val="cover" aria-pressed="false">I cover</button>
+            </div>
+          </div>
+
+          <label class="cx-pass" id="cxPass" hidden>
+            <input type="checkbox" id="cxPassChk" />
+            <span>Reservation Holder has a Reservation Pass</span>
+          </label>
+
+          <div class="cx-result">
+            <div class="cx-result-block">
+              <span class="cx-result-label">Pricing</span>
+              <p id="cxPricing"></p>
+            </div>
+            <div class="cx-result-block">
+              <span class="cx-result-label">Payment</span>
+              <p id="cxPayment"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
     <!-- MAIN COLUMN -->
     <main class="col-main">
 
@@ -264,6 +320,6 @@
   </div>
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

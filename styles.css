@@ -150,6 +150,49 @@ body {
 .col-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 .col-side { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px; }
 
+/* Three-column layout when the Booking flow panel is present (Court+) */
+.layout.has-cx { max-width: 1440px; grid-template-columns: 300px minmax(0, 1fr) 340px; }
+.col-cx { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 22px; }
+
+/* ---------- Booking flow (CX) panel ---------- */
+.cx-step { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.cx-step-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cx-step-num {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none;
+  border-radius: 50%; background: var(--accent); color: var(--on-accent);
+  font-size: 11px; font-weight: 700;
+}
+.cx-step-hint { font-size: 11.5px; color: var(--muted-fg); margin: -4px 0 0 28px; }
+.cx-seg {
+  display: flex; gap: 4px; padding: 4px; background: var(--muted);
+  border: 1px solid var(--border); border-radius: 10px;
+}
+.cx-seg button {
+  flex: 1; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; border: none; background: transparent; color: var(--muted-fg);
+  padding: 9px 10px; border-radius: 7px; transition: all .16s ease; min-height: 40px;
+}
+.cx-seg button:hover { color: var(--fg); }
+.cx-seg button.is-active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow); }
+.cx-seg button:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.cx-pass {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 11px 12px; margin-bottom: 16px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card-solid);
+  font-size: 12.5px; font-weight: 600;
+}
+.cx-pass input { width: 17px; height: 17px; flex: none; accent-color: var(--accent); cursor: pointer; }
+.cx-result { display: flex; flex-direction: column; gap: 12px; }
+.cx-result-block {
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--muted);
+}
+.cx-result-label {
+  display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted-fg); margin-bottom: 5px;
+}
+.cx-result-block p { margin: 0; font-size: 13px; line-height: 1.5; }
+
 /* ---------- Card ---------- */
 .card {
   background: var(--card);
@@ -411,8 +454,12 @@ table.calc tbody tr:hover td { background: var(--muted); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 960px) {
-  .layout { grid-template-columns: 1fr; }
-  .col-side { position: static; }
+  .layout, .layout.has-cx { grid-template-columns: 1fr; }
+  .col-side, .col-cx { position: static; }
+  /* Keep the configurator first; the Booking flow reads as a supporting aside below it */
+  .col-main { order: 1; }
+  .col-cx { order: 2; }
+  .col-side { order: 3; }
 }
 @media (max-width: 560px) {
   body { font-size: 14px; }

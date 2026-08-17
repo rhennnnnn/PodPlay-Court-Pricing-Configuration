@@ -766,6 +766,81 @@
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-selected', String(active));
     });
+    renderCx();
+  }
+
+  // ---------- Booking flow (CX walkthrough) ----------
+  // An illustrative panel (left column) that explains how a Court+ booking is
+  // priced and paid for, based on who booked, who was invited, and who pays.
+  // It is NOT part of the saved pricing config — purely a customer-experience aid.
+  // Only shown for Court+ (the other models' flows are not defined yet).
+  const cxState = { holder: 'nm', invited: 'nm', pays: 'they', pass: false };
+
+  function cxCompute() {
+    const H = cxState.holder, P = cxState.pays, R = cxState.pass;
+    // A member Reservation Holder's Reservation Pass covers the whole court.
+    if (H === 'm' && R) {
+      return {
+        pricing: 'The full court price is covered by the Reservation Pass.',
+        payment: 'The full court price is already covered by the Reservation Pass.',
+      };
+    }
+    let pricing;
+    if (P === 'cover' && H === 'nm') {
+      pricing = 'The booking uses the full court price.';
+    } else if (H === 'm') {
+      pricing = 'The full court price (discounted by the court-reservation discount for the member) is split evenly between the players.';
+    } else {
+      pricing = 'The full court price is split evenly between the players.';
+    }
+    const payment = P === 'they'
+      ? 'Each player pays an equal share.'
+      : 'The Reservation Holder pays the full cost (covers the share of the invited player marked "I cover").';
+    return { pricing, payment };
+  }
+
+  function renderCx() {
+    const panel = document.getElementById('cxPanel');
+    const layout = document.querySelector('.layout');
+    if (!panel || !layout) return;
+    const on = state.model === 'court-plus';
+    panel.hidden = !on;
+    layout.classList.toggle('has-cx', on);
+    if (!on) return;
+
+    // The Reservation Pass toggle only applies to a member Reservation Holder.
+    const passWrap = document.getElementById('cxPass');
+    const chk = document.getElementById('cxPassChk');
+    const showPass = cxState.holder === 'm';
+    if (passWrap) passWrap.hidden = !showPass;
+    if (!showPass) { cxState.pass = false; if (chk) chk.checked = false; }
+
+    document.querySelectorAll('#cxPanel .cx-seg').forEach((seg) => {
+      const key = seg.getAttribute('data-cx');
+      seg.querySelectorAll('button').forEach((b) => {
+        const active = b.getAttribute('data-val') === cxState[key];
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+    });
+
+    const { pricing, payment } = cxCompute();
+    const pEl = document.getElementById('cxPricing');
+    const payEl = document.getElementById('cxPayment');
+    if (pEl) pEl.textContent = pricing;
+    if (payEl) payEl.textContent = payment;
+  }
+
+  function bindCx() {
+    document.querySelectorAll('#cxPanel .cx-seg button').forEach((b) => {
+      b.addEventListener('click', () => {
+        const seg = b.closest('.cx-seg');
+        cxState[seg.getAttribute('data-cx')] = b.getAttribute('data-val');
+        renderCx();
+      });
+    });
+    const chk = document.getElementById('cxPassChk');
+    if (chk) chk.addEventListener('change', () => { cxState.pass = chk.checked; renderCx(); });
   }
 
   function setModel(model) {
@@ -986,6 +1061,7 @@
     bindToolbar();
     bindCodePanel();
     bindModals();
+    bindCx();
     bootRender();
     applyAdminChrome();
     applyLockChrome();
