@@ -36,8 +36,8 @@
   }
 
   // ---- Admin gate + configuration codes ----
-  // A configuration code is a copy-paste token (like a game crosshair code) that
-  // encodes a whole configuration. The model is baked into the tag, so a Court+
+  // A configuration code is a copy-paste token that encodes a whole
+  // configuration. The model is baked into the tag, so a Court+
   // code will NOT apply on top of a Spot+ or Hybrid setup, and vice-versa.
   //
   // The admin console lives at ?view=admin and asks for this passcode before it
